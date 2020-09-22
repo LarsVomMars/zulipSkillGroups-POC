@@ -18,17 +18,17 @@ class BotHandler(object):
 
         groups = resp["user_groups"]
 
-        content = "-"
+        content = ""
+
         if cmd in ["get", "list"]:
             content = "Groups: " + ", ".join([group["name"] for group in groups if group["id"] not in FILTER_GROUPS and sid in group["members"]])
 
         elif cmd in ["add"]:
             # TODO: Filter
             # TODO: Approx name
-            names = "".join(split[1:]).lower().strip().split(",")
+            names = "-".join(split[1:]).lower().strip().split(",")
             for name in names:
-                if group_exists(groups, name):
-                    group = get_group_by_name(groups, name)
+                if (group := group_exists(groups, name)):
                     if not has_group(group, sid):
                         result = client.update_user_group_members({
                             "group_id": group["id"],
@@ -47,8 +47,7 @@ class BotHandler(object):
         elif cmd in ["delete", "remove"]:
             names = "-".join(split[1:]).lower().strip().split(",")
             for name in names:
-                if group_exists(groups, name): # TODO: group_exists with walrus :=
-                    group = get_group_by_name(groups, name)
+                if (group := group_exists(groups, name)):
                     if has_group(group, sid):
                         result = client.update_user_group_members({
                             "group_id": group["id"],
@@ -62,12 +61,18 @@ class BotHandler(object):
 
 handler_class = BotHandler
 
+
+# TODO: ids instead of names
+
 def get_groups():
     return client.get_user_groups()
 
 
 def group_exists(groups, name):
-    return name in get_group_names(groups)
+    gs = get_group_names(groups)
+    if name in gs:
+        return get_group_by_name(name)
+    return None
 
 
 def has_group(group, sid):
@@ -83,7 +88,3 @@ def get_group_by_name(groups, name):
     for group in groups:
         if group["name"] == name:
             return group
-
-
-def get_group_name_by_id(groups, id):
-    return ""
